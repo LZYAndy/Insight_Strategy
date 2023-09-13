@@ -1,0 +1,399 @@
+// Player2: Sun Yingsha
+// ---------
+// |   |   |
+// | 1 | 2 |
+// |   |   |
+// ----+----
+// |   |   |
+// | 3 | 4 |
+// |   |   |
+// =========
+// |   |   |
+// | 5 | 6 |
+// |   |   |
+// ----+----
+// |   |   |
+// | 7 | 8 |
+// |   |   |
+// ---------
+// Player1: Chen Meng
+
+// Init variables
+enum{chen, sun, na};
+var turnCounter = 0; //turn counter
+var server = na; //player serving
+var c_score = 0; //first to 11 wins
+var s_score = 0;
+var won = na;
+var ball = 9; //ball init as out
+
+// Decide who serve first
+Game = WhoServe1st; (Player1Serve [] Player2Serve);
+WhoServe1st = []i:{sun,chen}@ TossCoin{server = i} -> Skip;
+Player1Serve = [won == na && server == chen]chenServe -> (ChenServeLeft [] ChenServeRight);
+Player2Serve = [won == na && server == sun]sunServe -> (SunServeLeft [] SunServeRight);
+
+// After a score is awarded
+NextPt = [server == sun && won == na]sunServe -> SunServe [] [server == chen && won ==
+    na]chenServe -> ChenServe [] ([won != na]GameOver -> Skip);
+
+SunServe = pcase {
+    25: serveLeft -> SunServeLeft
+    16: serveRight -> SunServeRight
+};
+
+ChenServe = pcase {
+    38: serveLeft -> ChenServeLeft
+    4: serveRight -> ChenServeRight
+};
+
+// Chen Sequences
+ChenServeLeft = pcase {
+    2: serveStraightLong{ball=1} -> Sun_Return1
+    4: serveCrossLong{ball=2} -> Sun_Return2
+    25: serveStraightShort{ball=3} -> Sun_Return3
+    4: serveCrossShort{ball=4} -> Sun_Return4
+    3: serveError{ball=9} -> ChenServeLeft_2nd [] ChenServeRight_2nd
+};
+ChenServeLeft_2nd = pcase {
+    1: serveStraightLong{ball= 1} -> Sun_Return1
+    0: serveCrossLong{ball= 2} -> Sun_Return2
+    2: serveStraightShort{ball= 3} -> Sun_Return3
+    0: serveCrossShort{ball= 4} -> Sun_Return4
+    0: serveError{ball= 9} -> updateScore{s_score++;
+        if (s_score == 11) {
+            won = sun
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = sun;
+            }
+        }
+    } -> NextPt
+};
+
+ChenServeRight = pcase {
+    0: serveStraightLong{ball= 2} -> Sun_Return2
+    0: serveCrossLong{ball= 1} -> Sun_Return1
+    1: serveStraightShort{ball= 4} -> Sun_Return4
+    2: serveCrossShort{ball= 3} -> Sun_Return3
+    1: serveError{ball= 9} -> ChenServeLeft_2nd [] ChenServeRight_2nd
+};
+
+ChenServeRight_2nd = pcase {
+    0: serveStraightLong{ball= 1} -> Sun_Return1
+    0: serveCrossLong{ball= 2} -> Sun_Return2
+    1: serveStraightShort{ball= 3} -> Sun_Return3
+    0: serveCrossShort{ball= 4} -> Sun_Return4
+    0: serveError{ball= 9} -> updateScore{s_score++;
+        if (s_score == 1) {
+            won = sun
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = sun;
+            }
+        }
+    } -> NextPt
+};
+
+// Sun Sequences
+SunServeLeft = pcase {
+    1: serveStraightLong{ball= 8} -> Chen_Return8
+    2: serveCrossLong{ball= 7} -> Chen_Return7
+    17: serveStraightShort{ball= 6} -> Chen_Return6
+    3: serveCrossShort{ball= 5} -> Chen_Return5
+    2: serveError{ball= 9} -> SunServeLeft_2nd [] SunServeRight_2nd
+};
+
+SunServeLeft_2nd = pcase {
+    0: serveStraightLong{ball= 8} -> Chen_Return8
+    0: serveCrossLong{ball= 7} -> Chen_Return7
+    1: serveStraightShort{ball= 6} -> Chen_Return6
+    0: serveCrossShort{ball= 5} -> Chen_Return5
+    0: serveError{ball= 9} -> updateScore{c_score++;
+        if (c_score == 11) {
+            won = chen;
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = chen;
+            }
+        }
+    } -> NextPt
+};
+
+SunServeRight = pcase {
+    1: serveStraightLong{ball= 7} -> Chen_Return7
+    3: serveCrossLong{ball= 8} -> Chen_Return8
+    0: serveStraightShort{ball= 5} -> Chen_Return5
+    11: serveCrossShort{ball= 6} -> Chen_Return6
+    1: serveError{ball= 9} -> SunServeLeft_2nd [] SunServeRight_2nd
+};
+
+SunServeRight_2nd = pcase {
+    0: serveStraightLong{ball= 7} -> Chen_Return7
+    0: serveCrossLong{ball= 8} -> Chen_Return8
+    0: serveStraightShort{ball= 5} -> Chen_Return5
+    2: serveCrossShort{ball= 6} -> Chen_Return6
+    0: serveError{ball= 9} -> updateScore{c_score++;
+        if (c_score == 11) {
+            won = chen;
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = chen;
+            }
+        }
+    } -> NextPt
+};
+
+Sun_Return1 = pcase {
+    0: FHPushCrossShort{ball = 6} -> Chen_Return6
+    0: FHPushCrossLong{ball = 8} -> Chen_Return8
+    0: FHPushStraightShort{ball = 5} -> Chen_Return5
+    0: FHPushStraightLong{ball = 7} -> Chen_Return7
+    0: BHPushCrossShort{ball = 6} -> Chen_Return6
+    0: BHPushCrossLong{ball = 8} -> Chen_Return8
+    0: BHPushStraightShort{ball = 5} -> Chen_Return5
+    0: BHPushStraightLong{ball = 7} -> Chen_Return7
+    2: FHDriveCrossShort{ball = 6} -> Chen_Return6
+    5: FHDriveCrossLong{ball = 8} -> Chen_Return8
+    1: FHDriveStraightShort{ball = 5} -> Chen_Return5
+    7: FHDriveStraightLong{ball = 7} -> Chen_Return7
+    0: BHDriveCrossShort{ball = 6} -> Chen_Return6
+    0: BHDriveCrossLong{ball = 8} -> Chen_Return8
+    1: BHDriveStraightShort{ball = 5} -> Chen_Return5
+    1: BHDriveStraightLong{ball = 7} -> Chen_Return7
+    12: returnError{ball= 9} -> updateScore{c_score++;
+        if (c_score == 11) {
+            won = chen;
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = chen;
+            }
+        }
+    } -> NextPt
+};
+
+Sun_Return2 = pcase {
+    1: FHPushCrossShort{ball = 5} -> Chen_Return5
+    0: FHPushCrossLong{ball = 7} -> Chen_Return7
+    0: FHPushStraightShort{ball = 6} -> Chen_Return6
+    0: FHPushStraightLong{ball = 8} -> Chen_Return8
+    1: BHPushCrossShort{ball = 5} -> Chen_Return5
+    4: BHPushCrossLong{ball = 7} -> Chen_Return7
+    0: BHPushStraightShort{ball = 6} -> Chen_Return6
+    0: BHPushStraightLong{ball = 8} -> Chen_Return8
+    3: FHDriveCrossShort{ball = 5} -> Chen_Return5
+    6: FHDriveCrossLong{ball = 7} -> Chen_Return7
+    1: FHDriveStraightShort{ball = 6} -> Chen_Return6
+    3: FHDriveStraightLong{ball = 8} -> Chen_Return8
+    3: BHDriveCrossShort{ball = 5} -> Chen_Return5
+    60: BHDriveCrossLong{ball = 7} -> Chen_Return7
+    1: BHDriveStraightShort{ball = 6} -> Chen_Return6
+    19: BHDriveStraightLong{ball = 8} -> Chen_Return8
+    19: returnError{ball= 9} -> updateScore{c_score++;
+        if (c_score == 11) {
+            won = chen;
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = chen;
+            }
+        }
+    } -> NextPt
+};
+
+Sun_Return3 = pcase {
+    15: FHPushCrossShort{ball = 6} -> Chen_Return6
+    2: FHPushCrossLong{ball = 8} -> Chen_Return8
+    5: FHPushStraightShort{ball = 5} -> Chen_Return5
+    11: FHPushStraightLong{ball = 7} -> Chen_Return7
+    0: BHPushCrossShort{ball = 6} -> Chen_Return6
+    0: BHPushCrossLong{ball = 8} -> Chen_Return8
+    0: BHPushStraightShort{ball = 5} -> Chen_Return5
+    3: BHPushStraightLong{ball = 7} -> Chen_Return7
+    0: FHDriveCrossShort{ball = 6} -> Chen_Return6
+    5: FHDriveCrossLong{ball = 8} -> Chen_Return8
+    1: FHDriveStraightShort{ball = 5} -> Chen_Return5
+    2: FHDriveStraightLong{ball = 7} -> Chen_Return7
+    0: BHDriveCrossShort{ball = 6} -> Chen_Return6
+    0: BHDriveCrossLong{ball = 8} -> Chen_Return8
+    0: BHDriveStraightShort{ball = 5} -> Chen_Return5
+    0: BHDriveStraightLong{ball = 7} -> Chen_Return7
+    6: returnError{ball= 9} -> updateScore{c_score++;
+        if (c_score == 11) {
+            won = chen;
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = chen;
+            }
+        }
+    } -> NextPt
+};
+
+Sun_Return4 = pcase {
+    0: FHPushCrossShort{ball = 5} -> Chen_Return5
+    1: FHPushCrossLong{ball = 7} -> Chen_Return7
+    0: FHPushStraightShort{ball = 6} -> Chen_Return6
+    1: FHPushStraightLong{ball = 8} -> Chen_Return8
+    1: BHPushCrossShort{ball = 5}-> Chen_Return5
+    9: BHPushCrossLong{ball = 7}-> Chen_Return7
+    0: BHPushStraightShort{ball = 6} -> Chen_Return6
+    2: BHPushStraightLong{ball = 8} -> Chen_Return8
+    1: FHDriveCrossShort{ball = 5} -> Chen_Return5
+    0: FHDriveCrossLong{ball = 7} -> Chen_Return7
+    1: FHDriveStraightShort{ball = 6} -> Chen_Return6
+    0: FHDriveStraightLong{ball = 8} -> Chen_Return8
+    2: BHDriveCrossShort{ball = 5} -> Chen_Return5
+    12: BHDriveCrossLong{ball = 7} -> Chen_Return7
+    0: BHDriveStraightShort{ball = 6} -> Chen_Return6
+    4: BHDriveStraightLong{ball = 8} -> Chen_Return8
+    10: returnError{ball= 9} -> updateScore{c_score++;
+        if (c_score == 11) {
+            won = chen;
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = chen;
+            }
+        }
+    } -> NextPt
+};
+
+Chen_Return5 = pcase {
+    0: FHPushCrossShort{ball = 4} -> Sun_Return4
+    0: FHPushCrossLong{ball = 2} -> Sun_Return2
+    1: FHPushStraightShort{ball = 3} -> Sun_Return3
+    0: FHPushStraightLong{ball = 1} -> Sun_Return1
+    1: BHPushCrossShort{ball = 4} -> Sun_Return4
+    2: BHPushCrossLong{ball = 2} -> Sun_Return2
+    2: BHPushStraightShort{ball = 3} -> Sun_Return3
+    1: BHPushStraightLong{ball = 1} -> Sun_Return1
+    0: FHDriveCrossShort{ball = 4} -> Sun_Return4
+    2: FHDriveCrossLong{ball = 2} -> Sun_Return2
+    0: FHDriveStraightShort{ball = 3} -> Sun_Return3
+    0: FHDriveStraightLong{ball = 1} -> Sun_Return1
+    3: BHDriveCrossShort{ball = 4} -> Sun_Return4
+    6: BHDriveCrossLong{ball = 2} -> Sun_Return2
+    1: BHDriveStraightShort{ball = 3} -> Sun_Return3
+    0: BHDriveStraightLong{ball = 1} -> Sun_Return1
+    2: returnError{ball= 9} -> updateScore{s_score++;
+        if (s_score == 11) {
+            won = sun
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = sun;
+            }
+        }
+    } -> NextPt
+};
+
+Chen_Return6 = pcase {
+    4: FHPushCrossShort{ball = 3} -> Sun_Return3
+    3: FHPushCrossLong{ball = 1} -> Sun_Return1
+    6: FHPushStraightShort{ball = 4} -> Sun_Return4
+    18: FHPushStraightLong{ball = 2} -> Sun_Return2
+    1: BHPushCrossShort{ball = 3} -> Sun_Return3
+    0: BHPushCrossLong{ball = 1} -> Sun_Return1
+    0: BHPushStraightShort{ball = 4} -> Sun_Return4
+    0: BHPushStraightLong{ball = 2} -> Sun_Return2
+    2: FHDriveCrossShort{ball = 3} -> Sun_Return3
+    2: FHDriveCrossLong{ball = 1} -> Sun_Return1
+    2: FHDriveStraightShort{ball =4 } -> Sun_Return4
+    2: FHDriveStraightLong{ball = 2} -> Sun_Return2
+    0: BHDriveCrossShort{ball = 3} -> Sun_Return3
+    0: BHDriveCrossLong{ball = 1} -> Sun_Return1
+    0: BHDriveStraightShort{ball = 4} -> Sun_Return4
+    2: BHDriveStraightLong{ball = 2} -> Sun_Return2
+    10: returnError{ball= 9} -> updateScore{s_score++;
+        if (s_score == 11) {
+            won = sun
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = sun;
+            }
+        }
+    } -> NextPt
+};
+
+Chen_Return7 = pcase {
+    0: FHPushCrossShort{ball =4 } -> Sun_Return4
+    0: FHPushCrossLong{ball = 2} -> Sun_Return2
+    1: FHPushStraightShort{ball =3 } -> Sun_Return3
+    1: FHPushStraightLong{ball = 1} -> Sun_Return1
+    4: BHPushCrossShort{ball = 4} -> Sun_Return4
+    8: BHPushCrossLong{ball = 2} -> Sun_Return2
+    1: BHPushStraightShort{ball =3 } -> Sun_Return3
+    2: BHPushStraightLong{ball = 1} -> Sun_Return1
+    4: FHDriveCrossShort{ball = 4} -> Sun_Return4
+    11: FHDriveCrossLong{ball = 2} -> Sun_Return2
+    0: FHDriveStraightShort{ball =3 } -> Sun_Return3
+    3: FHDriveStraightLong{ball = 1} -> Sun_Return1
+    14: BHDriveCrossShort{ball = 4} -> Sun_Return4
+    43: BHDriveCrossLong{ball = 2} -> Sun_Return2
+    4: BHDriveStraightShort{ball =3 } -> Sun_Return3
+    9: BHDriveStraightLong{ball = 1} -> Sun_Return1
+    17: returnError{ball= 9} -> updateScore{s_score++;
+        if (s_score == 11) {
+            won = sun
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = sun;
+            }
+        }
+    } -> NextPt
+};
+
+Chen_Return8 = pcase {
+    0: FHPushCrossShort{ball = 3} -> Sun_Return3
+    0: FHPushCrossLong{ball = 1} -> Sun_Return1
+    1: FHPushStraightShort{ball = 4} -> Sun_Return4
+    1: FHPushStraightLong{ball = 2} -> Sun_Return2
+    0: BHPushCrossShort{ball = 3} -> Sun_Return3
+    0: BHPushCrossLong{ball = 1} -> Sun_Return1
+    0: BHPushStraightShort{ball = 4} -> Sun_Return4
+    2: BHPushStraightLong{ball = 2} -> Sun_Return2
+    1: FHDriveCrossShort{ball = 3} -> Sun_Return3
+    5: FHDriveCrossLong{ball = 1} -> Sun_Return1
+    5: FHDriveStraightShort{ball = 4} -> Sun_Return4
+    12: FHDriveStraightLong{ball = 2} -> Sun_Return2
+    0: BHDriveCrossShort{ball = 3} -> Sun_Return3
+    2: BHDriveCrossLong{ball = 1} -> Sun_Return1
+    1: BHDriveStraightShort{ball = 4} -> Sun_Return4
+    6: BHDriveStraightLong{ball = 2} -> Sun_Return2
+    7: returnError{ball= 9} -> updateScore{s_score++;
+        if (s_score == 11) {
+            won = sun
+        } else {
+            turnCounter++;
+            if (turnCounter == 2) {
+                turnCounter = 0; // reset counter
+                server = sun;
+            }
+        }
+    } -> NextPt
+};
+
+#define chenWin won == chen;
+#define sunWin won == sun;
+#assert Game deadlockfree;
+#assert Game reaches chenWin with prob;
+#assert Game reaches sunWin with prob;

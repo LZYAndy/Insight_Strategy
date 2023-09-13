@@ -1,0 +1,130 @@
+// Match Data is from
+// Match Data is from
+// *****
+// Player1: Lin Dan (LD)
+// L R
+// +----+----+
+// |    |    |
+// | 01 | 02 | B
+// |    |    |
+// |=========|
+// |    |    |
+// | 03 | 04 | C
+// |    |    |
+// |=========|
+// |    |    |
+// | 05 | 06 | F
+// |    |    |
+// +----+----+
+// +----+----+
+// |    |    |
+// | 07 | 08 | F
+// |    |    |
+// |=========|
+// |    |    |
+// | 09 | 10 | C
+// |    |    |
+// |=========|
+// |    |    |
+// | 11 | 12 | B
+// |    |    |
+// +----+----+
+// L R aaa
+// Player2: Lee Chong Wei (LCW)
+// *****e
+
+enum{player1, player2, na};
+var turn = na; //serve turn;
+var ldscore = 0;
+var lcwscore = 0;
+var winning_score = 4;
+var won = na;
+var shuttle = 21;
+TieBreakGame = WhoServe1st; (Player1Serve [] Player2Serve);
+WhoServe1st = []i:{player1, player2}@ TossCoin{turn = i} -> Skip;
+
+// if no one reaches winning points, a new round start
+NextPt = [ldscore<winning_score && lcwscore<winning_score]inProgress{won = na} -> Play
+    [] [ldscore >= winning_score]player1_won{won = player1} -> Skip
+    [] [lcwscore >= winning_score]player2_won{won = player2} -> Skip;
+
+// serve
+Play = [turn == player1]player1_to_serve -> Player1Serve [] [turn == player2]player2_to_serve -> Player2Serve;
+Player1Serve = [won == na && turn == player1] LDReady_Serve -> Ply1Serve;
+Ply1Serve = pcase {
+    42: LDServeToF_L{shuttle=7} -> Ply2_UpR
+    72: LDServeToF_R{shuttle=8} -> Ply2_UpR
+    9: LDServeToB_L{shuttle=11} -> Ply2_DownR
+    8: LDServeToB_R{shuttle=12} -> Ply2_DownR
+    1: LDServe_err{shuttle=21} -> {lcwscore++; if
+        (lcwscore == winning_score) {won = player2}
+        else { turn = player2 } }-> NextPt
+};
+
+Player2Serve = [won == na && turn == player2] LCWReady_Serve ->
+Ply2Serve;
+Ply2Serve = pcase {
+    44: LCWServeToF_L{shuttle=5} -> Ply1_UpR
+    66: LCWServeToF_R{shuttle=6} -> Ply1_UpR
+    14: LCWServeToB_L{shuttle=1} -> Ply1_DownR
+    7: LCWServeToB_R{shuttle=2} -> Ply1_DownR
+    1: LCWServe_err{shuttle=21} -> {ldscore++; if
+        (ldscore == winning_score) {won = player1}
+        else { turn = player1 } }-> NextPt
+};
+
+Ply1_UpR = pcase {
+    144: netReceiveFL{shuttle=7} -> Ply2_UpR
+    210: netReceiveFR{shuttle=8} -> Ply2_UpR
+    353: pushReceiveCL{shuttle=9} -> (Ply2_UpR [] Ply2_DownR)
+    454: pushReceiveCR{shuttle=10} -> (Ply2_UpR [] Ply2_DownR)
+    172: liftReceiveBL{shuttle=11} -> Ply2_DownR
+    201: liftReceiveBR{shuttle=12} -> Ply2_DownR
+    60: LDUp_Error {shuttle=21} -> {lcwscore++; if
+        (lcwscore == winning_score) {won = player2}
+        else { turn = player2 } }-> NextPt
+};
+
+Ply1_DownR = pcase {
+    193: netReceiveFL{shuttle=7} -> Ply2_UpR
+    264: netReceiveFR{shuttle=8} -> Ply2_UpR
+    295: pushReceiveCL{shuttle=9} -> (Ply2_UpR [] Ply2_DownR)
+    333: pushReceiveCR{shuttle=10} -> (Ply2_UpR [] Ply2_DownR)
+    134: liftReceiveCL{shuttle=11} -> Ply2_DownR
+    129: liftReceiveCR{shuttle=12} -> Ply2_DownR
+    20: LDDown_Error {shuttle=21} -> {lcwscore++; if
+        (lcwscore == winning_score) {won = player2}
+        else { turn = player2 } }-> NextPt
+};
+
+Ply2_UpR = pcase {
+    373: netReceiveFL{shuttle=1} -> Ply1_UpR
+    409: netReceiveFR{shuttle=2} -> Ply1_UpR
+    155: pushReceiveCL{shuttle=3} -> (Ply1_UpR [] Ply1_DownR)
+    180: pushReceiveCR{shuttle=4} -> (Ply1_UpR [] Ply1_DownR)
+    131: liftReceiveBL{shuttle=5} -> Ply1_DownR
+    209: liftReceiveBR{shuttle=6} -> Ply1_DownR
+    62: LCWUp_Error {shuttle=21} -> {ldscore++; if
+        (ldscore == winning_score) {won = player1}
+        else { turn = player1 } }-> NextPt
+};
+
+Ply2_DownR = pcase {
+    277: netReceiveFL{shuttle=1} -> Ply1_UpR
+    234: netReceiveFR{shuttle=2} -> Ply1_UpR
+    492: pushReceiveCL{shuttle=3} -> (Ply1_UpR [] Ply2_DownR)
+    402: pushReceiveCR{shuttle=4} -> (Ply1_UpR [] Ply2_DownR)
+    198: liftReceiveBL{shuttle=5} -> Ply1_DownR
+    230: liftReceiveBR{shuttle=6} -> Ply1_DownR
+    34: LCWDown_Error {shuttle=21} -> {ldscore++; if
+        (ldscore == winning_score) {won = player1}
+        else { turn = player1 } }-> NextPt
+};
+
+#define player1Win won == player1;
+#define player2Win won == player2;
+Game = WhoServe1st;NextPt;
+#assert Game reaches player1Win with prob;
+#assert Game reaches player2Win with prob;
+#assert Game deadlockfree;
+
